@@ -12,25 +12,13 @@ def init_database():
         CREATE TABLE IF NOT EXISTS complaints (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            productCode TEXT,
-            importer TEXT NOT NULL,
             description TEXT,
+            importer TEXT NOT NULL,
+            productCode TEXT,
             status TEXT DEFAULT 'new',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             photo_path TEXT,
             assigned_to TEXT
-        )
-    ''')
-    
-    # Tabela komentarzy/akcji
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS actions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            complaint_id INTEGER,
-            action_type TEXT,
-            description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (complaint_id) REFERENCES complaints (id)
         )
     ''')
     
@@ -43,7 +31,6 @@ def add_complaint(title, description, importer, product_code=None, photo_path=No
     conn = sqlite3.connect('complaints.db')
     c = conn.cursor()
     
-    # POPRAWIONE: zgodność kolumn z definicją tabeli
     c.execute('''
         INSERT INTO complaints (title, description, importer, productCode, photo_path)
         VALUES (?, ?, ?, ?, ?)
@@ -54,15 +41,45 @@ def add_complaint(title, description, importer, product_code=None, photo_path=No
     conn.close()
     return complaint_id
 
-def get_complaints():
-    """Pobierz wszystkie reklamacje"""
+def get_complaints_paginated(page=1, limit=20, status=None, importer=None, date_from=None, date_to=None):
+    """Pobierz reklamacje z paginacją i filtrami"""
     conn = sqlite3.connect('complaints.db')
     c = conn.cursor()
     
-    c.execute('''
+    # Buduj zapytanie z filtrami
+    query = '''
         SELECT id, title, description, importer, productCode, status, created_at, photo_path 
-        FROM complaints ORDER BY created_at DESC
-    ''')
+        FROM complaints 
+        WHERE 1=1
+    '''
+    params = []
+    
+    if status:
+        query += ' AND status = ?'
+        params.append(status)
+    
+    if importer:
+        query += ' AND importer LIKE ?'
+        params.append(f'%{importer}%')
+    
+    if date_from:
+        query += ' AND DATE(created_at) >= ?'
+        params.append(date_from)
+    
+    if date_to:
+        query += ' AND DATE(created_at) <= ?'
+        params.append(date_to)
+    
+    # Zapytanie o całkowitą liczbę
+    count_query = 'SELECT COUNT(*) FROM complaints WHERE 1=1' + query.split('WHERE 1=1')[1]
+    c.execute(count_query, params)
+    total_count = c.fetchone()[0]
+    
+    # Dodaj sortowanie i paginację
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    params.extend([limit, (page - 1) * limit])
+    
+    c.execute(query, params)
     
     complaints = []
     for row in c.fetchall():
@@ -78,4 +95,9 @@ def get_complaints():
         })
     
     conn.close()
+    return complaints, total_count
+
+def get_complaints():
+    """Pobierz wszystkie reklamacje (dla kompatybilności)"""
+    complaints, _ = get_complaints_paginated(limit=1000)
     return complaints

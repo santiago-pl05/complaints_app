@@ -32,7 +32,7 @@ def api_add_complaint():
         title = request.form['title']
         description = request.form['description']
         importer = request.form['importer']
-        product_code = request.form.get('code', '')  # POPRAWIONE: obsługa kodu produktu
+        product_code = request.form.get('code', '')
         
         # Zapisz zdjęcie jeśli jest
         photo_path = None
@@ -43,7 +43,7 @@ def api_add_complaint():
                 photo_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 photo.save(photo_path)
         
-        # Zapisz do bazy - POPRAWIONE: dodanie product_code
+        # Zapisz do bazy
         complaint_id = database.add_complaint(
             title=title, 
             description=description, 
@@ -64,11 +64,35 @@ def api_add_complaint():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# API: Pobierz reklamacje
+# API: Pobierz reklamacje z paginacją i filtrami
 @app.route('/api/complaints', methods=['GET'])
 def api_get_complaints():
-    complaints = database.get_complaints()
-    return jsonify(complaints)
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        status = request.args.get('status')
+        importer = request.args.get('importer')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        
+        complaints, total_count = database.get_complaints_paginated(
+            page=page,
+            limit=limit,
+            status=status,
+            importer=importer,
+            date_from=date_from,
+            date_to=date_to
+        )
+        
+        return jsonify({
+            'complaints': complaints,
+            'total_count': total_count,
+            'page': page,
+            'limit': limit
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # WebSocket events
 @socketio.on('connect')
@@ -81,4 +105,5 @@ if __name__ == '__main__':
     
     # Uruchom serwer
     print("Serwer uruchamia się na http://localhost:5000")
+    print("Panel admina: http://localhost:5000/admin")
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

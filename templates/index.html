@@ -4,7 +4,7 @@
 <head>
     <title>System reklamacji</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="static/complaints_add_page/style.css">
 </head>
 
 <body>
@@ -16,18 +16,18 @@
 
         <div class="checkbox-group">
             <label for="haveCode">Posiadam kod produktu</label>
-            <input type="checkbox" id="haveCode" name="haveCode" value="1">
+            <input type="checkbox" id="haveCode" name="haveCode">
         </div>
 
         <input type="text" name="code" placeholder="Kod produktu" class="hidden"><br>
-        <input type="text" name="importer" placeholder="Importer" required><br>
+        <input type="text" name="importer" placeholder="Dostawca" required><br>
         <input type="file" name="photo" accept="image/*"><br>
         <button type="submit">Wyślij reklamację</button>
     </form>
 
     <div id="message"></div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/complaints_add_page/app.js"></script>
 </body>
 
 </html>
