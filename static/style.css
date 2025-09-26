@@ -1,0 +1,33 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+input,
+textarea,
+button {
+    width: 100%;
+    margin: 5px 0;
+    padding: 8px;
+}
+
+.checkbox-group {
+    display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.checkbox-group label {
+    margin: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+#message {
+    margin: 10px 0;
+    padding: 10px;
+    background: #f0f0f0;
+}

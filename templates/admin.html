@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel administracyjny - System reklamacji</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .complaints-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .complaints-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .complaints-table th,
+        .complaints-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .complaints-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .complaints-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-new { background-color: #d4edda; color: #155724; }
+        .status-in-progress { background-color: #fff3cd; color: #856404; }
+        .status-resolved { background-color: #d1ecf1; color: #0c5460; }
+        .status-closed { background-color: #e2e3e5; color: #383d41; }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #007bff;
+            color: white;
+        }
+        
+        .pagination button:disabled {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        
+        .filters {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filters select, .filters input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .complaint-details {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .view-details {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .view-details:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Panel administracyjny - Zgłoszenia reklamacyjne</h1>
+        <p>Zarządzaj zgłoszeniami klientów</p>
+    </div>
+
+    <div class="filters">
+        <div>
+            <label>Status:</label>
+            <select id="statusFilter">
+                <option value="">Wszystkie</option>
+                <option value="new">Nowe</option>
+                <option value="in-progress">W trakcie</option>
+                <option value="resolved">Rozpatrzone</option>
+                <option value="closed">Zamknięte</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Importer:</label>
+            <input type="text" id="importerFilter" placeholder="Filtruj po importerze">
+        </div>
+        
+        <div>
+            <label>Data od:</label>
+            <input type="date" id="dateFrom">
+        </div>
+        
+        <div>
+            <label>Data do:</label>
+            <input type="date" id="dateTo">
+        </div>
+        
+        <button onclick="loadComplaints()">Filtruj</button>
+        <button onclick="clearFilters()">Wyczyść</button>
+    </div>
+
+    <div class="complaints-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tytuł</th>
+                    <th>Importer</th>
+                    <th>Data zgłoszenia</th>
+                    <th>Status</th>
+                    <th>Akcje</th>
+                </tr>
+            </thead>
+            <tbody id="complaintsList">
+                <!-- Tutaj będą ładowane zgłoszenia -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <button id="prevPage" onclick="changePage(currentPage - 1)">← Poprzednia</button>
+        <span class="page-info" id="pageInfo">Strona 1 z 1</span>
+        <button id="nextPage" onclick="changePage(currentPage + 1)">Następna →</button>
+    </div>
+
+    <div class="complaint-details" id="complaintDetails">
+        <!-- Szczegóły zgłoszenia będą ładowane tutaj -->
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const itemsPerPage = 20;
+
+        // Ładuj zgłoszenia przy starcie
+        document.addEventListener('DOMContentLoaded', function() {
+            loadComplaints();
+        });
+
+        async function loadComplaints(page = 1) {
+            try {
+                // Pobierz wartości filtrów
+                const status = document.getElementById('statusFilter').value;
+                const importer = document.getElementById('importerFilter').value;
+                const dateFrom = document.getElementById('dateFrom').value;
+                const dateTo = document.getElementById('dateTo').value;
+
+                // Zbuduj URL z parametrami
+                let url = `/api/complaints?page=${page}&limit=${itemsPerPage}`;
+                if (status) url += `&status=${status}`;
+                if (importer) url += `&importer=${importer}`;
+                if (dateFrom) url += `&date_from=${dateFrom}`;
+                if (dateTo) url += `&date_to=${dateTo}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                displayComplaints(data.complaints);
+                updatePagination(data.total_count, page);
+                
+            } catch (error) {
+                console.error('Błąd ładowania zgłoszeń:', error);
+            }
+        }
+
+        function displayComplaints(complaints) {
+            const tbody = document.getElementById('complaintsList');
+            tbody.innerHTML = '';
+
+            if (complaints.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Brak zgłoszeń</td></tr>';
+                return;
+            }
+
+            complaints.forEach(complaint => {
+                const row = document.createElement('tr');
+                
+                // Formatuj datę
+                const complaintDate = new Date(complaint.created_at);
+                const formattedDate = complaintDate.toLocaleDateString('pl-PL') + ' ' + 
+                                     complaintDate.toLocaleTimeString('pl-PL');
+
+                // Określ klasę statusu
+                const statusClass = `status-${complaint.status}`;
+
+                row.innerHTML = `
+                    <td>#${complaint.id}</td>
+                    <td>${escapeHtml(complaint.title)}</td>
+                    <td>${escapeHtml(complaint.importer)}</td>
+                    <td>${formattedDate}</td>
+                    <td><span class="status ${statusClass}">${getStatusText(complaint.status)}</span></td>
+                    <td>
+                        <button class="view-details" onclick="showComplaintDetails(${complaint.id})">
+                            Szczegóły
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updatePagination(totalCount, currentPage) {
+            const totalPages = Math.ceil(totalCount / itemsPerPage);
+            const pageInfo = document.getElementById('pageInfo');
+            const prevButton = document.getElementById('prevPage');
+            const nextButton = document.getElementById('nextPage');
+
+            pageInfo.textContent = `Strona ${currentPage} z ${totalPages}`;
+            prevButton.disabled = currentPage <= 1;
+            nextButton.disabled = currentPage >= totalPages;
+
+            window.currentPage = currentPage;
+        }
+
+        function changePage(page) {
+            if (page >= 1) {
+                loadComplaints(page);
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('importerFilter').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            loadComplaints(1);
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'new': 'Nowe',
+                'in-progress': 'W trakcie',
+                'resolved': 'Rozpatrzone',
+                'closed': 'Zamknięte'
+            };
+            return statusMap[status] || status;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function showComplaintDetails(complaintId) {
+            // Tutaj możesz dodać obsługę szczegółów zgłoszenia
+            alert(`Szczegóły zgłoszenia #${complaintId} - ta funkcjonalność będzie dodana później`);
+        }
+    </script>
+</body>
+</html>

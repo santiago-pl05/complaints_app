@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>System reklamacji</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+    <h1>Zgłoś reklamację</h1>
+
+    <form id="complaintForm">
+        <input type="text" name="title" placeholder="Tytuł reklamacji" required><br>
+        <textarea name="description" placeholder="Opis problemu" rows="4" required></textarea><br>
+
+        <div class="checkbox-group">
+            <label for="haveCode">Posiadam kod produktu</label>
+            <input type="checkbox" id="haveCode" name="haveCode" value="1">
+        </div>
+
+        <input type="text" name="code" placeholder="Kod produktu" class="hidden"><br>
+        <input type="text" name="importer" placeholder="Importer" required><br>
+        <input type="file" name="photo" accept="image/*"><br>
+        <button type="submit">Wyślij reklamację</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
